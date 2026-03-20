@@ -10,6 +10,9 @@ echo.
 REM 配置您的Git仓库路径
 set "GIT_REPO_PATH=C:\Users\Administrator\Documents\TRPG\actor survey report"
 
+REM 确保使用main分支
+set "DEFAULT_BRANCH=main"
+
 REM 检查配置的路径是否存在
 if not exist "!GIT_REPO_PATH!" (
     echo [错误] 配置的Git仓库路径不存在：!GIT_REPO_PATH!
@@ -45,6 +48,23 @@ if "!CURRENT_BRANCH!"=="" (
         pause
         exit /b 1
     )
+)
+
+REM 检查是否在main分支，如果不是则切换
+if not "!CURRENT_BRANCH!"=="!DEFAULT_BRANCH!" (
+    echo [信息] 当前分支不是!DEFAULT_BRANCH!，正在切换...
+    git checkout !DEFAULT_BRANCH! 2>nul
+    if errorlevel 1 (
+        echo [信息] !DEFAULT_BRANCH!分支不存在，正在创建...
+        git checkout -b !DEFAULT_BRANCH!
+        if errorlevel 1 (
+            echo [错误] 创建!DEFAULT_BRANCH!分支失败
+            pause
+            exit /b 1
+        )
+    )
+    REM 重新获取当前分支名称
+    for /f "tokens=*" %%b in ('git branch --show-current 2^>nul') do set "CURRENT_BRANCH=%%b"
 )
 echo [信息] 当前分支：!CURRENT_BRANCH!
 echo.
