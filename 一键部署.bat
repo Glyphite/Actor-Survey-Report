@@ -85,20 +85,10 @@ if "!has_changes!"=="1" (
     set "timepart=!datetime:~8,2!:!datetime:~10,2!:!datetime:~12,2!"
     
     set "default_msg=自动同步：%datepart% %timepart%"
-    set /p user_msg="   请输入提交信息（直接回车使用默认'%default_msg%'）："
-    
-    if "!user_msg!"=="" (
-        git commit -m "%default_msg%"
-    ) else (
-        git commit -m "!user_msg!"
-    )
+    git commit -m "%default_msg%"
     
     if !errorlevel! equ 0 (
-        if "!user_msg!"=="" (
-            echo   提交成功！提交信息：%default_msg%
-        ) else (
-            echo   提交成功！提交信息：!user_msg!
-        )
+        echo   提交成功！提交信息：%default_msg%
     ) else (
         echo   提交失败，可能是提交信息冲突或无实际更改。
         echo   尝试使用空提交继续...
