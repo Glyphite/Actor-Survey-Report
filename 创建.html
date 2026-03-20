@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+	<title>角色卡创建器</title>
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+	<style>
+		*{margin:0;padding:0;box-sizing:border-box}body{background:#000;color:#fff;font-family:Arial;min-height:100vh}.c{position:relative;z-index:20;max-width:1400px;margin:0 auto;padding:2rem}header{text-align:center;padding:2rem 0}h1{font-size:3.5rem;color:#f00;letter-spacing:6px;text-shadow:0 0 20px rgba(255,0,0,0.7);margin-bottom:.5rem}.s{font-size:1.2rem;color:#f99;letter-spacing:2px;opacity:.9}.m{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:3rem;align-items:flex-start}@media(max-width:1100px){.m{grid-template-columns:1fr}}.card{background:rgba(255,0,0,0.15);backdrop-filter:blur(10px);border:2px solid rgba(255,100,100,0.4);border-radius:8px;padding:2rem;position:relative}.card h2{color:#f00;font-size:1.8rem;margin-bottom:1.5rem;border-left:4px solid #f00;padding-left:1rem;text-shadow:0 0 1px #000}.st{color:#f66;font-size:1.4rem;margin:1.5rem 0 1rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,100,100,0.3)}.input-container{position:relative;margin-bottom:0;width:100%}.spaced{margin-bottom:8px}.age-gender-row{display:flex;gap:8px}.age-gender-row .input-container{width:auto;flex:1}.input-container.shortened{width:calc(100% - 200px)}.md3-input{width:100%;padding:0.75rem 0.75rem;line-height:1.5rem;background:rgba(30,0,0,0.5);border:none;border-radius:8px;color:#fff;font-size:1.1rem;outline:none;transition:all 0.3s;box-shadow:0 2px 8px rgba(0,0,0,0.3)}.md3-input:focus{box-shadow:0 0 0 2px rgba(255,0,0,0.2)}.input-label{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(180,180,180,0.9);pointer-events:none;transition:all 0.3s;transform-origin:0 0;white-space:nowrap;z-index:3;font-size:1.1rem;padding:0 .25rem}.md3-input:focus~.input-label,.md3-input:not(:placeholder-shown):not(select)~.input-label,.input-label.float{transform:translateY(-50%) translateY(-1.5rem) scale(0.85);color:#ff4444;padding:0}select.md3-input{appearance:none;padding-right:2.5rem;background:rgba(20,0,0,0.85) url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><path fill="%23ff6666" d="M7 10L2 5h10z"/></svg>') no-repeat right 1rem center;cursor:pointer}textarea.md3-input{min-height:120px;resize:vertical;font-family:inherit;line-height:1.5;padding-top:1.5rem}.ar{display:flex;align-items:center;margin-bottom:8px;background:rgba(30,0,0,0.5);padding:1.2rem;border-radius:8px;border:1px solid rgba(255,100,100,0.3);height:3.1rem;position:relative}.ar .input-label{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(180,180,180,0.9);pointer-events:none;transition:all 0.3s;transform-origin:0 0;white-space:nowrap;z-index:3;font-size:1.1rem;padding:0 .25rem}.ar:hover .input-label{transform:translateY(-50%) translateY(-1.5rem) scale(0.85);color:#ff4444;padding:0}.an{flex:0 0 100px;color:#f99;font-size:1.1rem;font-weight:bold}.ac{display:flex;align-items:center;flex:1;justify-content:center}.vd{min-width:60px;text-align:right;font-size:1.1rem;font-weight:bold;color:#f00;margin:0 1.5rem;text-shadow:0 0 10px rgba(255,0,0,0.5)}.btn{background:none;color:#fff;border:none;border-radius:0;width:auto;height:auto;font-size:2rem;cursor:pointer;display:inline-block;transition:all .3s;padding:0}.btn:hover{background:none;transform:none;color:#f00}.btn-m{color:#f99;font-size:2.5rem;vertical-align:middle;margin-top:-0.1rem}.btn-p{color:#fff}.btn-p:hover{color:#f00}.ab{display:flex;justify-content:center;gap:1.5rem;margin-top:2rem}.abt{padding:1rem 2.5rem;background:linear-gradient(135deg,rgba(255,0,0,0.8),rgba(200,0,0,0.9));color:#fff;border:none;border-radius:8px;font-size:1.1rem;cursor:pointer;transition:all .3s}.abt:hover{background:linear-gradient(135deg,rgba(255,50,50,0.9),rgba(220,0,0,1));transform:translateY(-3px)}.abt.s{background:linear-gradient(135deg,rgba(100,0,0,0.7),rgba(80,0,0,0.8))}footer{text-align:center;padding:2rem 0;color:#cc8888;font-size:.9rem}#three-canvas,#p5-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}#p5-canvas{z-index:5}@media(max-width:768px){h1{font-size:2.5rem;letter-spacing:4px}.c{padding:1rem}.m{grid-template-columns:1fr}.ab{flex-direction:column}.abt{padding:.8rem 1.5rem}}.reaction-ring{position:absolute;left:calc(100% - 180px);top:7rem;width:120px;height:120px;border-radius:50%;background:rgba(30,0,0,0.5);border:2px solid rgba(255,100,100,0.4);margin:0;animation:rotate 10s linear infinite}.reaction-ring:hover{animation-play-state:paused}@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.reaction-btn{position:absolute;width:60px;height:60px;border-radius:50%;background:rgba(30,0,0,0.5);border:2px solid rgba(255,100,100,0.4);font-size:24px;color:#fff;cursor:pointer;transition:all 0.3s;animation:counter-rotate 10s linear infinite;transform-origin:center}.reaction-btn:hover{background:rgba(255,50,50,0.7)}.reaction-btn.selected{background:rgba(255,100,100,0.8);border-color:#ff4444}.reaction-ring:hover .reaction-btn{animation-play-state:paused}@keyframes counter-rotate{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}.sharp{top:calc(60px + 0px - 30px);left:calc(60px + 58px - 30px)}.circle{top:calc(60px + 58px * 0.866 - 30px);left:calc(60px + 58px * -0.5 - 30px)}.square{top:calc(60px + 58px * -0.866 - 30px);left:calc(60px + 58px * -0.5 - 30px)}.attributes-row{display:flex;justify-content:center;gap:8px;align-items:center;margin-bottom:8px}.arrows{display:flex;flex-direction:column;margin-left:0}.arrow-up,.arrow-down{cursor:pointer;font-size:28px;color:#f99;transition:color 0.3s;margin-top:0}.arrow-up:hover,.arrow-down:hover{color:#f00}.arrow-down{margin-top:-14px}
+	.age-container{position:relative}.age-container .arrows{display:flex;flex-direction:column;position:absolute;right:10px;top:50%;transform:translateY(-50%)}.age-container .arrows .arrow-up,.age-container .arrows .arrow-down{cursor:pointer;color:#f66;transition:color 0.3s;font-size:1.8rem}.age-container .arrows .arrow-up:hover,.age-container .arrows .arrow-down:hover{color:#f00}.soul-container .arrows{display:flex;flex-direction:column;position:absolute;right:10px;top:50%;transform:translateY(-50%)}.soul-container .arrows .arrow-up,.soul-container .arrows .arrow-down{cursor:pointer;color:#f66;transition:color 0.3s;font-size:1.8rem}.soul-container .arrows .arrow-up:hover,.soul-container .arrows .arrow-down:hover{color:#f00}.age-gender-row .md3-input{padding-right:50px}.soul-container .md3-input{padding-right:50px}.textarea-container .input-label{top:0.75rem;transform:none}.textarea-container .input-label.float{transform:translateY(-1.5rem) scale(0.85)}.age-gender-row{display:flex;gap:0.5rem;max-width:calc(100% - 200px)}.age-gender-row .input-container{flex:1}
+		@media(max-width:600px){
+			.age-gender-row{
+				display:flex;
+				flex-direction:column;
+				gap:8px;
+			}
+			.age-gender-row .input-container{
+				width:100%;
+			}
+			.attributes-row .input-container{
+				width:100%;
+			}
+			.soul-container .input-container{
+				width:100%;
+			}
+		}
+		.skills-section { margin-bottom:1rem; }
+		.skills-section h3 { color:#f00; font-size:1.4rem; margin-bottom:0.5rem; border-left:4px solid #f00; padding-left:1rem; }
+		.skills-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:0.1rem; }
+		.skill-item { background:rgba(255,100,100,0.1); border:1px solid rgba(255,100,100,0.3); padding:0.5rem; text-align:center; color:#f99; border-radius:4px; font-size:0.9rem; display:flex; flex-direction:column; align-items:center; }
+		.skill-name { margin-bottom:0.3rem; font-weight:bold; }
+		.level-buttons { display:flex; gap:1px; margin-top:0.2rem; }
+		.level-btn { width:6px; height:18px; background:rgba(255,100,100,0.2); border:1px solid rgba(255,100,100,0.5); border-radius:3px; cursor:pointer; transition:all 0.3s; display:flex; align-items:center; justify-content:center; font-size:0; color:#fff; margin:0 1px; box-shadow:inset 0 1px 2px rgba(255,100,100,0.1); }
+		.level-btn:hover { background:#666; transform:scale(1.1); }
+		.level-btn.active { background:#f00; border-color:#f55; }
+		.level-btn.current { background:#ff6600; border-color:#ff8800; box-shadow:0 0 4px rgba(255,102,0,0.5); }
+
+		/* 手机端响应式样式 */
+		@media (max-width: 768px) {
+			body { overflow-x: hidden; }
+			.c { padding: 1rem; }
+			header { padding: 1rem 0; }
+			h1 { font-size: 2.5rem; }
+			.s { font-size: 1rem; }
+			.m { gap: 1rem; }
+			.card { padding: 1rem; }
+			.card h2 { font-size: 1.5rem; }
+			.st { font-size: 1.2rem; }
+			.md3-input { font-size: 1rem; padding: 0.5rem; }
+			.input-label { font-size: 1rem; }
+			.skills-grid { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+			.skill-item { padding: 0.3rem; font-size: 0.8rem; }
+			.level-btn { width: 8px; height: 20px; margin: 0 0.5px; }
+		}
+
+		@media (max-width: 480px) {
+			.c { padding: 0.5rem; }
+			h1 { font-size: 2rem; }
+			.s { font-size: 0.9rem; }
+			.m { grid-template-columns: 1fr; gap: 0.5rem; }
+			.card { padding: 0.5rem; }
+			.card h2 { font-size: 1.3rem; }
+			.st { font-size: 1.1rem; }
+			.md3-input { font-size: 0.9rem; padding: 0.4rem; }
+			.input-label { font-size: 0.9rem; }
+			.skills-section h3 { font-size: 1.2rem; }
+			.skills-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+			.skill-item { padding: 0.3rem; font-size: 0.8rem; }
+			.level-btn { width: 10px; height: 22px; margin: 0 1px; }
+		}
+	</style>
+</head>
+<body>
+	<div id="three-canvas"></div>
+	<div id="p5-canvas"></div>
+	<div class="c">
+		<header>
+			<h1>角色卡创建器</h1>
+			<p class="s">剩余瞑目点数：8</p>
+		</header>
+		<main>
+			<div class="m">
+				<div class="card">
+					<h2>设定</h2>
+					<div class="input-container shortened spaced"><input type="text" id="n" class="md3-input" placeholder=" "><span class="input-label">姓名</span></div>
+					<div class="age-gender-row spaced">
+						<div class="input-container"><input type="text" id="g" class="md3-input" placeholder=" "><span class="input-label">性别</span></div>
+						<div class="input-container age-container"><input type="text" id="a" class="md3-input" placeholder=" "><span class="input-label">年龄</span><div class="arrows"><span class="material-icons-outlined arrow-up" onclick="adjAge(1)">arrow_drop_up</span><span class="material-icons-outlined arrow-down" onclick="adjAge(-1)">arrow_drop_down</span></div></div>
+					</div>
+					<div class="age-gender-row spaced">
+						<div class="input-container"><input type="text" id="g2" class="md3-input" placeholder=" "><span class="input-label">国籍</span></div>
+						<div class="input-container"><input type="text" id="a2" class="md3-input" placeholder=" "><span class="input-label">种族</span></div>
+					</div>
+					<div class="input-container spaced"><input type="text" id="crd" class="md3-input" placeholder=" "><span class="input-label">信用</span></div>
+					<div class="input-container spaced"><input type="text" id="d" class="md3-input" placeholder=" "><span class="input-label">思想</span></div>
+					<!-- 三相反应框 -->
+					<div class="reaction-ring spaced">
+						<button class="reaction-btn sharp" onclick="cycle(this)">▲</button>
+						<button class="reaction-btn circle" onclick="cycle(this)">●</button>
+						<button class="reaction-btn square" onclick="cycle(this)">■</button>
+					</div>
+					<div class="input-container textarea-container spaced"><textarea id="bg" class="md3-input" placeholder=" "></textarea><span class="input-label">经历</span></div>
+					<div class="input-container textarea-container spaced"><textarea id="wv" class="md3-input" placeholder=" "></textarea><span class="input-label">世界观</span></div>
+				</div>
+				<div class="card">
+					<h2>能力</h2>
+					<div class="attributes-row spaced">
+						<div class="input-container shortened soul-container"><input type="text" id="s" class="md3-input" placeholder=" " value="5"><span class="input-label">魂</span><div class="arrows"><span class="material-icons-outlined arrow-up" onclick="adjSoul(1)">arrow_drop_up</span><span class="material-icons-outlined arrow-down" onclick="adjSoul(-1)">arrow_drop_down</span></div></div>
+						<div class="input-container shortened soul-container"><input type="text" id="b" class="md3-input" placeholder=" " value="5"><span class="input-label">魄</span><div class="arrows"><span class="material-icons-outlined arrow-up" onclick="adjSpirit(1)">arrow_drop_up</span><span class="material-icons-outlined arrow-down" onclick="adjSpirit(-1)">arrow_drop_down</span></div></div>
+					</div>
+					<div id="skills-container"></div>
+				</div>
+			</div>
+		</main>
+		<footer>
+			<p> 2026 角色卡创建器 | 精简版</p>
+			<p>数据保存在本地浏览器中，请及时导出保存</p>
+		</footer>
+	</div>
+	<script>
+		// 统一数据存储结构
+		const skillsList = ['斩击技法','刺击技法','钝击技法','鞭击技法','近身搏击','百步穿杨','枪火点射','弹雨倾泻','重炮轰鸣','奇械专精','巧舌如簧','威压恫吓','明见万里','故纸寻踪','明心见性','妙手回春','蛇行鳞潜','鬼蜮伎俩','机动驾驶','运动自如','械理洞明','博古通今','金石药理','万物生息','数据思维'];
+		
+		let char = {
+			b: {n:'',a:'',g:'',bg:'',crd:'',d:'',wv:'',g2:'',a2:''},
+			a: {s:5,b:5},
+			reactions: [],
+			s: Object.fromEntries(skillsList.map(s=>[s,0]))
+		};
+		
+		// 渲染技能
+		function renderSkills(){
+			const categories = ['战斗', '交互', '知识'];
+			const skillsPerCategory = [10, 10, 5]; // 战斗10个，交互10个，知识5个
+			let html = '';
+			let skillIndex = 0;
+			for(let i=0; i<categories.length; i++){
+				html += `<div class="skills-section"><h3>${categories[i]}</h3><div class="skills-grid">`;
+				let skillsInThisCategory = skillsPerCategory[i];
+				for(let j=0; j<skillsInThisCategory; j++){
+					let skill = skillsList[skillIndex];
+					let buttons = '';
+					for(let k=1; k<=10; k++){
+						let btnClass = 'level-btn';
+						if(k <= char.s[skill]) btnClass += ' active';
+						if(k === char.s[skill]) btnClass += ' current';
+						buttons += `<div class="${btnClass}" onclick="setSkillLevel('${skill}', ${k})" title="设置等级 ${k}">${k}</div>`;
+					}
+					html += `<div class="skill-item"><span class="skill-name">${skill} Lv.${char.s[skill]}</span><div class="level-buttons">${buttons}</div></div>`;
+					skillIndex++;
+				}
+				html += '</div></div>';
+			}
+			document.getElementById('skills-container').innerHTML = html;
+		}
+		
+		// Three.js初始化
+		let scene, camera, renderer, controls, moon;
+		function initThree(){
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(0x0a0005);
+			camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+			camera.position.z = 5;
+			renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.2});
+			renderer.setSize(window.innerWidth,window.innerHeight);
+			renderer.setPixelRatio(devicePixelRatio);
+			document.getElementById('three-canvas').appendChild(renderer.domElement);
+			
+			controls = new THREE.OrbitControls(camera,renderer.domElement);
+			controls.enableDamping = true;
+			controls.dampingFactor = 0.05;
+			
+			scene.add(new THREE.AmbientLight(0x330000));
+			let light = new THREE.DirectionalLight(0xffaa88,1.5);
+			light.position.set(10,5,7);
+			scene.add(light);
+			
+			let geo = new THREE.BufferGeometry(), pos = new Float32Array(54000), col = new Float32Array(54000);
+			for(let i=0;i<54000;i+=3){
+				let r=30+200*Math.random(),p=2*Math.PI*Math.random(),t=Math.acos(2*Math.random()-1);
+				pos[i]=r*Math.sin(t)*Math.cos(p); pos[i+1]=r*Math.sin(t)*Math.sin(p); pos[i+2]=r*Math.cos(t);
+				col[i]=1; col[i+1]=1; col[i+2]=1;
+			}
+			geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+			geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+			scene.add(new THREE.Points(geo,new THREE.PointsMaterial({size:.05,sizeAttenuation:true,vertexColors:true,transparent:true,opacity:.8})));
+			
+			moon = new THREE.Mesh(new THREE.SphereGeometry(2,64,32),new THREE.MeshPhongMaterial({
+				map:new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg'),
+				color:0xff3333,specular:0x552222,shininess:5,emissive:0x220000,emissiveIntensity:.1
+			}));
+			moon.rotation.y=Math.PI/6;
+			scene.add(moon);
+			
+			let canvas = document.createElement('canvas');
+			canvas.width = 64; canvas.height = 64;
+			let ctx = canvas.getContext('2d');
+			let g = ctx.createRadialGradient(32,32,0,32,32,32);
+			g.addColorStop(0,'rgba(255,100,100,1)');
+			g.addColorStop(0.2,'rgba(255,50,50,0.8)');
+			g.addColorStop(1,'rgba(255,0,0,0)');
+			ctx.fillStyle = g;
+			ctx.fillRect(0,0,64,64);
+			
+			let sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+				map: new THREE.CanvasTexture(canvas),
+				color: 0xff4444,
+				transparent: true,
+				blending: THREE.AdditiveBlending,
+				opacity: 0.3
+			}));
+			sprite.scale.set(5,5,1);
+			moon.add(sprite);
+		}
+		
+		function animate(){
+			requestAnimationFrame(animate);
+			moon.rotation.y+=.001;
+			controls.update();
+			renderer.render(scene,camera);
+		}
+		
+		// p5.js粒子
+		let particles=[];
+		function setup(){
+			let c=createCanvas(windowWidth,windowHeight);
+			c.parent('p5-canvas');
+			c.style('position','fixed').style('top','0').style('left','0').style('z-index','5');
+			for(let i=0;i<150;i++) particles.push(new Particle());
+			noStroke();
+		}
+		
+		function draw(){
+			clear();
+			particles.forEach(p=>{p.update();p.display();});
+		}
+		
+		class Particle{
+			constructor(){
+				this.reset();
+				this.size=random(4,10);
+				this.trail=[];
+			}
+			reset(){
+				this.x=random(width);
+				this.y=random(height);
+				this.vx=random(-.8,.8);
+				this.vy=random(-.8,.8);
+				this.a=random(180,250);
+				this.s=random(.5,2);
+			}
+			update(){
+				this.trail.push({x:this.x,y:this.y,a:this.a});
+				if(this.trail.length>12) this.trail.shift();
+				this.x+=this.vx*this.s;
+				this.y+=this.vy*this.s;
+				let dx=mouseX-this.x, dy=mouseY-this.y, d=sqrt(dx*dx+dy*dy);
+				if(d<200){this.vx+=dx/d*.6;this.vy+=dy/d*.6;}
+				if(this.x<0||this.x>width) this.vx*=-.7;
+				if(this.y<0||this.y>height) this.vy*=-.7;
+				let sp=sqrt(this.vx*this.vx+this.vy*this.vy);
+				if(sp>3.5){this.vx=this.vx/sp*3.5;this.vy=this.vy/sp*3.5;}
+				this.vx*=.99;this.vy*=.99;this.a*=.998;
+				if(this.a<30) this.reset();
+			}
+			display(){
+				for(let i=0;i<this.trail.length;i++){
+					let p=this.trail[i],a=p.a*(i/this.trail.length)*.8;
+					fill(color(255,40,40,a));
+					ellipse(p.x,p.y,this.size*(i/this.trail.length)*.8);
+				}
+				fill(color(255,20,20,this.a));
+				drawingContext.shadowBlur=15;
+				drawingContext.shadowColor='rgba(255,40,40,0.8)';
+				ellipse(this.x,this.y,this.size);
+				drawingContext.shadowBlur=0;
+				fill(255,60,60,this.a*.7);
+				ellipse(this.x,this.y,this.size*.4);
+			}
+		}
+		
+		// 反应框切换函数
+		function cycle(btn) {
+			const icons = ['▲', '●', '■'];
+			const currentIcon = btn.textContent;
+			const currentIndex = icons.indexOf(currentIcon);
+			const nextIndex = (currentIndex + 1) % icons.length;
+			btn.textContent = icons[nextIndex];
+			
+			// 
+			const index = Array.from(btn.parentElement.children).indexOf(btn);
+			char.reactions[index] = icons[nextIndex];
+		}
+		
+		// 
+		function adjAge(delta) {
+			const input = document.getElementById('a');
+			let currentValue = parseInt(input.value) || 0;
+			currentValue += delta;
+			if (currentValue < 0) currentValue = 0;
+			input.value = currentValue;
+			char.b.a = currentValue.toString();
+		}
+		
+		// 
+		function adjSoul(delta) {
+			const input = document.getElementById('s');
+			let currentValue = parseInt(input.value) || 0;
+			currentValue += delta;
+			if (currentValue < 0) currentValue = 0;
+			input.value = currentValue;
+			char.a.s = currentValue;
+		}
+
+		// 
+		function adjSpirit(delta) {
+			const input = document.getElementById('b');
+			let currentValue = parseInt(input.value) || 0;
+			currentValue += delta;
+			if (currentValue < 0) currentValue = 0;
+			input.value = currentValue;
+			char.a.b = currentValue;
+		}
+
+		// 
+		function setSkillLevel(skill, level) {
+			char.s[skill] = level;
+			renderSkills();
+		}
+
+		// 输入框事件
+        ['n','a','bg','crd','d','g','wv','g2','a2'].forEach(id=>{
+            let el=document.getElementById(id);
+            el.addEventListener('input',function(){char.b[id]=this.value;});
+        });
+        document.getElementById('s').addEventListener('input',function(e){
+            this.value = this.value.replace(/[^0-9]/g, '');
+            char.a.s = parseInt(this.value) || 0;
+        });
+        document.getElementById('b').addEventListener('input',function(e){
+            this.value = this.value.replace(/[^0-9]/g, '');
+            char.a.b = parseInt(this.value) || 0;
+        });
+
+        // 
+        function updateUI() {
+            document.getElementById('n').value = char.b.n;
+            document.getElementById('a').value = char.b.a;
+            document.getElementById('g').value = char.b.g;
+            document.getElementById('g2').value = char.b.g2;
+            document.getElementById('a2').value = char.b.a2;
+            document.getElementById('bg').value = char.b.bg;
+            document.getElementById('crd').value = char.b.crd;
+            document.getElementById('d').value = char.b.d;
+            document.getElementById('wv').value = char.b.wv;
+            document.getElementById('s').value = char.a.s;
+            document.getElementById('b').value = char.a.b;
+            // 
+            document.querySelectorAll('.reaction-btn').forEach((btn, index) => {
+                if (char.reactions && char.reactions[index]) {
+                    btn.textContent = char.reactions[index];
+                }
+            });
+            renderSkills();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const containers = document.querySelectorAll('.input-container');
+            containers.forEach(container => {
+                const input = container.querySelector('.md3-input');
+                const label = container.querySelector('.input-label');
+                if (input && label) {
+                    const updateFloat = () => {
+                        if (input.value.trim() !== '') {
+                            label.classList.add('float');
+                        } else {
+                            label.classList.remove('float');
+                        }
+                    };
+                    input.addEventListener('focus', () => label.classList.add('float'));
+                    input.addEventListener('blur', () => {
+                        if (input.value.trim() === '') {
+                            label.classList.remove('float');
+                        }
+                    });
+                    input.addEventListener('input', updateFloat);
+                    updateFloat(); // initial
+                }
+            });
+
+            renderSkills();
+
+            // 
+            let leftCard = document.querySelector('.m .card:first-child');
+            let rightCard = document.querySelector('.m .card:last-child');
+            rightCard.style.height = leftCard.offsetHeight + 'px';
+
+            // 
+            let saved=localStorage.getItem('char');
+            if(saved){
+                if(confirm('检测到保存的角色卡，是否加载？')){
+                    char=JSON.parse(saved);
+                    updateUI();
+                }
+            }
+
+            initThree();
+            animate();
+            setup();
+            draw();
+        });
+</script>
+</body>
+</html>
