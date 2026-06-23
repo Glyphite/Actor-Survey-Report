@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+	<title>角色卡创建器</title>
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+	<style>
+		:root {
+			/* 主题变量 */
+			--primary-red: #f00;
+			--secondary-red: #f66;
+			--dark-bg: rgba(30,0,0,0.5);
+			--darker-bg: rgba(20,0,0,0.85);
+			--border-color: rgba(255,100,100,0.4);
+			--glow-red: rgba(255,0,0,0.7);
+			--stroke-black: 0 0 1px #000;
+			--radius: 8px;
+			--transition: all 0.3s ease;
+			--gap: 0.25rem;
+			--padding: 0.5rem;
+			/* 布局变量 */
+			--row-gap: 0.5rem;     /* 行间间距 */
+			--reaction-w: 130px;    /* 反应框宽度 */
+		}
+
+		/* 全局文字描边 */
+		h1, h2, h3, h4, .skill-name, .input-label, .an, .vd,
+		.btn, .btn-m, .btn-p, .arrow-up, .arrow-down,
+		.st, footer, .abt, .reaction-btn, .card h2, .skills-section h3 {
+			text-shadow: var(--stroke-black);
+		}
+
+		/* 标题竖线（伪元素实现，避免影响文字） */
+		.card h2, .skills-section h3 {
+			position: relative;
+			border-left: none !important;
+		}
+		.card h2::before, .skills-section h3::before {
+			content: '';
+			position: absolute;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			width: 4px;
+			background: var(--primary-red);
+			box-shadow: var(--stroke-black);
+		}
+
+		/* 基础布局 */
+		*{margin:0;padding:0;box-sizing:border-box}
+		body{background:#000;color:#fff;font-family:Arial;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+		.c{position:relative;z-index:20;max-width:1200px;margin:0 auto;padding:2rem 1.5rem;flex:1}
+		/* 冻结视口 */
+		header{position:sticky;top:0;z-index:100;text-align:center;padding:0;display:flex;flex-direction:column;align-items:center;transition:background 0.3s ease,backdrop-filter 0.3s ease,box-shadow 0.3s ease}
+		header.frozen{background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 12px rgba(0,0,0,0.5)}
+		h1{font-size:2.8rem;color:var(--primary-red);letter-spacing:6px;text-shadow:0 0 20px var(--glow-red);margin-bottom:0}
+		.s-row{display:flex;align-items:center;gap:1rem}
+		.s{font-size:1.1rem;color:#f99;letter-spacing:2px;opacity:.9}
+		/* 导出按钮 */
+		.export-btn{margin-top:.8rem;margin-bottom:.8rem;padding:.4rem 1.8rem;background:rgba(255,0,0,0.25);border:1px solid rgba(255,100,100,0.5);color:#f99;border-radius:var(--radius);font-size:1rem;letter-spacing:3px;cursor:pointer;font-family:inherit;transition:background 0.3s ease,border-color 0.3s ease,color 0.3s ease}
+		.export-btn:hover{background:rgba(255,0,0,0.35);border-color:rgba(255,100,100,0.7);color:#f99}
+		.export-btn:active{background:rgba(200,0,0,0.45);border-color:#c33}
+		.m{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:0;align-items:flex-start}
+		.card{background:rgba(255,0,0,0.15);backdrop-filter:blur(10px);border:2px solid var(--border-color);border-radius:var(--radius);padding:1.5rem;position:relative;display:flex;flex-direction:column}
+		.card h2{color:var(--primary-red);font-size:1.6rem;margin-bottom:1.2rem;border-left:4px solid var(--primary-red);padding-left:0.8rem;text-shadow:var(--stroke-black)}
+		.st{color:var(--secondary-red);font-size:1.3rem;margin:1.2rem 0 0.8rem;padding-bottom:.4rem;border-bottom:1px solid var(--border-color)}
+
+		/* 输入框基础样式 */
+		.input-container{position:relative;margin-bottom:var(--row-gap);width:100%}
+		.spaced{margin-bottom:var(--row-gap)}
+		/* settings-main 内部使用 gap 控制间距 */
+		.settings-main, .settings-main *{margin-bottom:0 !important}
+		.md3-input{width:100%;padding:0.75rem;line-height:1.5rem;background:var(--dark-bg);border:none;border-radius:var(--radius);color:#fff;font-size:1.1rem;outline:none;transition:var(--transition);box-shadow:0 2px 8px rgba(0,0,0,0.3);-webkit-tap-highlight-color:transparent}
+		.md3-input:focus{box-shadow:0 0 0 2px rgba(255,0,0,0.2);outline:none}
+		.input-label{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(180,180,180,0.9);pointer-events:none;transition:transform 0.25s ease,top 0.25s ease,color 0.25s ease;transform-origin:0 50%;white-space:nowrap;z-index:3;font-size:1.1rem;padding:0 .25rem;font-family:inherit}
+		.input-label.float{color:#ff4444;transform:translate(var(--tx, 0px), calc(-50% + var(--ty, 0px))) scale(0.85);top:50%}
+		textarea.md3-input{flex:1;min-height:0;resize:none;font-family:inherit;line-height:1.5;padding-top:0.75rem;scrollbar-width:thin;scrollbar-color:rgba(255,50,50,0.5) transparent}
+		textarea.md3-input::-webkit-scrollbar{width:6px}
+		textarea.md3-input::-webkit-scrollbar-track{background:transparent}
+		textarea.md3-input::-webkit-scrollbar-thumb{background:rgba(255,50,50,0.5);border-radius:3px}
+		textarea.md3-input::-webkit-scrollbar-thumb:hover{background:rgba(255,80,80,0.8)}
+		.textarea-container{flex:1;display:flex;min-height:0;margin-bottom:var(--row-gap)}
+		.textarea-container .md3-input{flex:1;height:100%}
+		.textarea-container .input-label{top:1.3rem}
+
+		/* 反应框区域 — Grid 布局 */
+		.settings-container{
+			display:grid;grid-template-columns:1fr var(--reaction-w);
+			align-items:center;justify-items:center;gap:var(--row-gap);
+		}
+		/* card 内子元素统一 margin-bottom */
+		.card > *:not(h2):not(:last-child){margin-bottom:var(--row-gap)}
+		.settings-main{grid-column:1;display:flex;flex-direction:column;gap:var(--row-gap);width:100%}
+		.row-pair{display:flex;gap:var(--row-gap);width:100%}
+		.row-pair > .input-container{flex:1}
+		.settings-container .reaction-container{
+			grid-column:2;
+			display:flex;align-items:center;justify-content:center;
+		}
+		/* 竖屏：JS 将 nation-row 移出，Grid 保持双列自动让位 */
+		@media (max-width: 768px){
+			.settings-container{
+				grid-template-columns:1fr var(--reaction-w);
+				align-items:center;justify-items:center;
+			}
+			.settings-main{grid-column:1;width:100%}
+			.settings-container .reaction-container{grid-column:2}
+			.settings-main .row-pair{flex-direction:column}
+			.settings-main .row-pair > .input-container{flex:none;width:100%}
+			.card > .row-pair{flex-direction:column}
+			.card > .row-pair > .input-container{flex:none;width:100%}
+		}
+		.soul-container .md3-input{padding-right:50px}
+
+		/* 选择与特殊输入 */
+		select.md3-input{appearance:none;padding-right:2.5rem;background:var(--darker-bg) url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><path fill="%23ff6666" d="M7 10L2 5h10z"/></svg>') no-repeat right 1rem center;cursor:pointer}
+
+		.reaction-ring{position:relative;width:94px;height:94px;border-radius:50%;background:var(--dark-bg);border:2px solid var(--border-color);animation:rotate 10s linear infinite}
+		.reaction-ring:hover{animation-play-state:paused}
+		.reaction-btn{position:absolute;width:40px;height:40px;border-radius:50%;background:var(--dark-bg);border:2px solid var(--border-color);font-size:20px;color:#fff;cursor:pointer;transition:var(--transition);animation:counter-rotate 10s linear infinite;transform-origin:center}
+		.reaction-btn:hover{background:rgba(255,50,50,0.7)}
+		.reaction-btn.selected{background:rgba(255,100,100,0.8);border-color:#ff4444}
+		.reaction-ring:hover .reaction-btn{animation-play-state:paused}
+		/* 三按钮位置 */
+		.sharp{top:calc(47px - 20px);left:calc(47px + 45px - 20px)}
+		.circle{top:calc(47px + 45px * 0.866 - 20px);left:calc(47px + 45px * -0.5 - 20px)}
+		.square{top:calc(47px + 45px * -0.866 - 20px);left:calc(47px + 45px * -0.5 - 20px)}
+		@keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+		@keyframes counter-rotate{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+
+		/* 魂魄属性行 */
+		.attributes-row{display:flex;justify-content:center;gap:var(--row-gap);align-items:center;margin-bottom:var(--row-gap)}
+		.arrows{display:flex;flex-direction:column;margin-left:0}
+		.arrow-up,.arrow-down{cursor:pointer;font-size:28px;color:#f99;transition:var(--transition);margin-top:0}
+		.arrow-up:hover,.arrow-down:hover{color:var(--primary-red)}
+		.arrow-down{margin-top:-14px}
+		.age-container,.soul-container{position:relative}
+		.age-container .arrows,.soul-container .arrows{display:flex;flex-direction:column;position:absolute;right:10px;top:50%;transform:translateY(-50%)}
+		.age-container .arrows .arrow-up,.age-container .arrows .arrow-down,.soul-container .arrows .arrow-up,.soul-container .arrows .arrow-down{cursor:pointer;color:#f66;transition:var(--transition);font-size:1.8rem;outline:none;user-select:none}
+		.age-container .arrows .arrow-up:hover,.soul-container .arrows .arrow-up:hover{color:var(--primary-red)}
+
+		/* 魂魄行扩展 */
+		.ar{display:flex;align-items:center;margin-bottom:var(--row-gap);background:var(--dark-bg);padding:1.2rem;border-radius:var(--radius);border:1px solid var(--border-color);height:3.1rem;position:relative}
+		.ar .input-label{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(180,180,180,0.9);pointer-events:none;transition:var(--transition);transform-origin:0 0;white-space:nowrap;z-index:3;font-size:1.1rem;padding:0 .25rem}
+		.ar:hover .input-label{transform:translateY(-50%) translateY(-1.5rem) scale(0.85);color:#ff4444;padding:0}
+		.an{flex:0 0 100px;color:#f99;font-size:1.1rem;font-weight:bold}
+		.ac{display:flex;align-items:center;flex:1;justify-content:center}
+		.vd{min-width:60px;text-align:right;font-size:1.1rem;font-weight:bold;color:var(--primary-red);margin:0 1.5rem;text-shadow:0 0 10px var(--glow-red)}
+
+		/* 技能面板 */
+		.skills-section{margin-bottom:0}
+		.skills-section h3{color:var(--primary-red);font-size:1.2rem;margin-bottom:0.3rem;border-left:4px solid var(--primary-red);padding-left:0.8rem}
+		.skills-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:0.1rem}
+		.skills-section .skills-grid + .skills-grid{margin-top:0.25rem}
+		.skill-item{position:relative;background:var(--dark-bg);border:1px solid rgba(255,100,100,0.3);padding:0.35rem 0.3rem;text-align:center;color:#f99;border-radius:var(--radius);font-size:0.9rem;display:flex;flex-direction:column;align-items:center;transition:var(--transition);cursor:pointer}
+		.skill-name{margin-bottom:0.2rem;font-weight:bold;font-size:0.9rem}
+		.level-buttons{display:flex;gap:1px;margin-top:0.15rem}
+		/* 默认：未激活（空）状态 */
+		.level-btn{width:5px;height:16px;background:rgba(120,120,120,0.3);border:1px solid rgba(150,150,150,0.5);border-radius:3px;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;font-size:0;color:#fff;margin:0 1px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.2)}
+		.level-btn:hover{background:rgba(200,200,200,0.5);transform:scale(1.1)}
+		.level-btn.active{background:var(--primary-red);border-color:#f55}
+		/* 等级颜色：纯正红色系渐进 */
+		.level-btn.lv1.active,.level-btn.lv2.active,.level-btn.lv3.active{background:#B71C1C;border-color:#C62828}
+		.level-btn.lv4.active,.level-btn.lv5.active,.level-btn.lv6.active{background:#E53935;border-color:#EF5350}
+		.level-btn.lv7.active,.level-btn.lv8.active,.level-btn.lv9.active,.level-btn.lv10.active{background:#FF5252;border-color:#FF8A80}
+		.skill-item:hover{z-index:10;transform:translateY(-3px);box-shadow:0 4px 16px rgba(255,0,0,0.4);border-color:#f55;background:rgba(60,0,0,0.7)}
+		.skill-item.dimmed{opacity:0.35;filter:grayscale(0.5)}
+
+		/* 技能悬浮提示 */
+		.skill-tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.95);border:1px solid rgba(255,100,100,0.6);border-radius:6px;padding:0.75rem 1rem;color:#fff;font-size:0.85rem;line-height:1.4;z-index:100;min-width:180px;max-width:260px;box-shadow:0 4px 20px rgba(255,0,0,0.3);opacity:0;visibility:hidden;transition:opacity 0.25s ease,visibility 0.25s ease;pointer-events:none;text-align:left}
+		.skill-item:hover .skill-tooltip{opacity:1;visibility:visible}
+		.skill-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:rgba(255,100,100,0.6)}
+		.skill-tooltip .tt-name{color:var(--secondary-red);font-weight:bold;font-size:0.95rem;margin-bottom:0.3rem;text-shadow:var(--stroke-black);text-align:center}
+		.skill-tooltip .tt-desc{color:#ccc;text-align:center}
+
+		/* 按钮 */
+		.btn{background:none;color:#fff;border:none;border-radius:0;width:auto;height:auto;font-size:2rem;cursor:pointer;display:inline-block;transition:var(--transition);padding:0}
+		.btn:hover{background:none;transform:none;color:var(--primary-red)}
+		.btn-m{color:#f99;font-size:2.5rem;vertical-align:middle;margin-top:-0.1rem}
+		.btn-p{color:#fff}
+		.btn-p:hover{color:var(--primary-red)}
+		.ab{display:flex;justify-content:center;gap:1.5rem;margin-top:2rem}
+		.abt{padding:1rem 2.5rem;background:linear-gradient(135deg,rgba(255,0,0,0.8),rgba(200,0,0,0.9));color:#fff;border:none;border-radius:var(--radius);font-size:1.1rem;cursor:pointer;transition:var(--transition)}
+		.abt:hover{background:linear-gradient(135deg,rgba(255,50,50,0.9),rgba(220,0,0,1));transform:translateY(-3px)}
+		.abt.s{background:linear-gradient(135deg,rgba(100,0,0,0.7),rgba(80,0,0,0.8))}
+
+		/* 背景层 */
+		#three-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}
+
+		/* 页脚 */
+		footer{text-align:center;padding:.8rem 0 0;margin:0;color:#cc8888;font-size:.9rem}
+
+		/* 响应式断点 */
+		@media (max-width: 1100px){
+			.m{grid-template-columns:1fr}
+		}
+		@media (max-width: 768px){
+			h1{font-size:2.5rem;letter-spacing:4px}
+			.c{padding:1rem}
+			.m{gap:1rem}
+			.card{padding:1rem}
+			.card h2{font-size:1.5rem}
+			.st{font-size:1.2rem}
+			.md3-input{font-size:1rem;padding:0.5rem}
+			.input-label{font-size:1rem}
+			.skills-grid{grid-template-columns:repeat(3,1fr);gap:0.5rem}
+			.skill-item{padding:0.3rem;font-size:0.8rem}
+			.level-btn{width:5px;height:16px;margin:0 1px}
+		}
+		@media (max-width: 768px){
+			/* 竖屏：card 顶层的 row-pair（国籍/种族）变竖排，输入框占满列宽 */
+			.card > .row-pair{flex-direction:column}
+			.card > .row-pair > .input-container{flex:none !important;width:100% !important}
+		}
+		@media (max-width: 600px){
+			/* 竖屏：输入框变矮 */
+			.attributes-row .input-container,.soul-container .input-container{width:100%}
+			:root{--input-h:1.5rem}
+		}
+		@media (max-width: 480px){
+			.c{padding:0.5rem}
+			h1{font-size:2rem}
+			.s{font-size:0.9rem}
+			.m{grid-template-columns:1fr;gap:0.5rem}
+			.card{padding:0.5rem}
+			.card h2{font-size:1.3rem}
+			.st{font-size:1.1rem}
+			/* 超小屏：输入框进一步变矮 */
+			.md3-input{font-size:0.9rem;padding:0.4rem}
+			.input-label{font-size:0.9rem}
+			.skills-section h3{font-size:1.2rem}
+			.skills-grid{grid-template-columns:repeat(2,1fr);gap:0.5rem}
+			.skill-item{padding:0.3rem;font-size:0.8rem}
+			.level-btn{width:5px;height:16px;margin:0 1px}
+		}
+	</style>
+</head>
+<body>
+	<div id="three-canvas"></div>
+	<div class="c">
+		<header>
+			<h1>角色卡创建器</h1>
+			<p class="s">剩余瞑目点数：8</p>
+			<button class="export-btn" onclick="exportChar()">导出角色卡</button>
+		</header>
+		<main>
+			<div class="m">
+				<div class="card">
+					<h2>设定</h2>
+					<div class="settings-container">
+						<div class="settings-main">
+							<div class="input-container spaced"><input type="text" id="n" class="md3-input" placeholder=" "><span class="input-label">姓名</span></div>
+							<div class="row-pair">
+								<div class="input-container"><input type="text" id="g" class="md3-input" placeholder=" "><span class="input-label">性别</span></div>
+								<div class="input-container age-container"><input type="text" id="a" class="md3-input" placeholder=" "><span class="input-label">年龄</span><div class="arrows"><span class="material-icons-outlined arrow-up" onclick="adjAge(1)">arrow_drop_up</span><span class="material-icons-outlined arrow-down" onclick="adjAge(-1)">arrow_drop_down</span></div></div>
+							</div>
+							<div class="row-pair nation-row">
+								<div class="input-container"><input type="text" id="g2" class="md3-input" placeholder=" "><span class="input-label">种族</span></div>
+								<div class="input-container age-container"><input type="text" id="a2" class="md3-input" placeholder=" "><span class="input-label">信用</span><div class="arrows"><span class="material-icons-outlined arrow-up" onclick="adjCredit(1)">arrow_drop_up</span><span class="material-icons-outlined arrow-down" onclick="adjCredit(-1)">arrow_drop_down</span></div></div>
+							</div>
+						</div>
+						<div class="reaction-container">
+							<div class="reaction-ring">
+								<button class="reaction-btn sharp" onclick="cycle(this)">▲</button>
+								<button class="reaction-btn circle" onclick="cycle(this)">●</button>
+								<button class="reaction-btn square" onclick="cycle(this)">■</button>
+							</div>
+						</div>
+					</div>
+					<div class="input-container spaced"><input type="text" id="crd" class="md3-input" placeholder=" "><span class="input-label">信条</span></div>
+					<div class="input-container spaced"><input type="text" id="d" class="md3-input" placeholder=" "><span class="input-label">欲望</span></div>
+					<div class="input-container textarea-container spaced"><textarea id="bg" class="md3-input" placeholder=" "></textarea><span class="input-label">经历</span></div>
+					<div class="input-container textarea-container spaced"><textarea id="wv" class="md3-input" placeholder=" "></textarea><span class="input-label">世界观</span></div>
+				</div>
+				<div class="card">
+					<h2>能力</h2>
+					<div class="attributes-row spaced">
+						<div class="input-container soul-container"><input type="text" id="s" class="md3-input" placeholder=" " value="5" min="1" max="10"><span class="input-label">魂</span><div class="arrows"><span class="material-icons-outlined arrow-up" onclick="adjSoul(1)">arrow_drop_up</span><span class="material-icons-outlined arrow-down" onclick="adjSoul(-1)">arrow_drop_down</span></div></div>
+						<div class="input-container soul-container"><input type="text" id="b" class="md3-input" placeholder=" " value="5" min="1" max="10"><span class="input-label">魄</span><div class="arrows"><span class="material-icons-outlined arrow-up" onclick="adjSpirit(1)">arrow_drop_up</span><span class="material-icons-outlined arrow-down" onclick="adjSpirit(-1)">arrow_drop_down</span></div></div>
+					</div>
+					<div id="skills-container"></div>
+				</div>
+			</div>
+		</main>
+		<footer>
+			<p> 2026 角色卡创建器</p>
+			<p>数据保存在本地浏览器中，请及时导出保存</p>
+		</footer>
+	</div>
+	<script>
+		// 技能描述（悬浮弹窗显示）— 兼顾诗意与实用
+		const skillDescriptions = {
+			'斩击技法': '刀锋弧线挥出裁决。由用法触发，竖劈、挥砍时生效，不限武器。',
+			'刺击技法': '直线突进洞穿防御。由用法触发，直刺、突戳时生效，不限武器。',
+			'钝击技法': '沉闷撞击震颤骨血。由用法触发，横拍、锤砸时生效，不限武器。',
+			'近身搏击': '贴身缠斗的原始搏击，徒手或短兵器皆可。',
+			'枪火轰鸣': '单发精准，一声爆响过后敌人应声而倒。',
+			'弹雨交织': '连射倾泻，火线织成的金属暴雨笼罩战场。',
+			'奇械专精': '特种枪械，从口红枪到异形炮皆能驾驭。',
+			'离手遥击': '投掷与弓术的基础技艺，脱手之物亦能取敌。',
+			'巧舌如簧': '说服、欺骗、交涉。簧舌织罗网，言语颠倒乾坤。',
+			'威压恫吓': '以气势碾压对手意志，狮王垂眸，草浪臣服。',
+			'故纸寻踪': '观察脚印、分析痕迹、查阅文献，从细节中追索真相。',
+			'察言观色': '微表情与肢体语言的读者，听见未说出口的真话。',
+			'妙手回春': '医术与急救，让濒死生机重新奔流。',
+			'蛇行鳞潜': '潜行与隐匿，脚步无声如蛇影游过草地。',
+			'鬼蜮伎俩': '偷窃、撬锁、陷阱、伪装、千术。于阴影中滋生诡计。',
+			'机动驾驶': '驾驶与追逐，引擎咆哮是坐骑，弯道倾斜是舞步。',
+			'械理洞明': '精通机械原理与操作，每一声齿轮转动皆是密语。',
+			'博古通今': '历史与博物知识渊博，前尘往事皆可娓娓道来。',
+			'万物生息': '生物学与自然之道，培育、识别无一不精。',
+			'数理思维': '逻辑推理与计算分析，万物皆数，秩序井然。'
+		};
+		// 分类 → 技能映射（战斗为二维数组，两行各 4 项；其余为一维数组）
+		const skillCategories = {
+			'战斗': [
+				['斩击技法','刺击技法','钝击技法','近身搏击'],
+				['枪火轰鸣','弹雨交织','奇械专精','离手遥击']
+			],
+			'探索': ['巧舌如簧','威压恫吓','故纸寻踪','察言观色'],
+			'交互': ['妙手回春','蛇行鳞潜','鬼蜮伎俩','机动驾驶'],
+			'知识': ['械理洞明','博古通今','万物生息','数理思维']
+		};
+		
+		// 初始技能等级（无专门教育的自然人基础值）
+		const initSkillLevels = {
+			'斩击技法':1,'刺击技法':1,'钝击技法':1,'近身搏击':1,
+			'枪火轰鸣':1,'弹雨交织':1,'奇械专精':1,'离手遥击':1,
+			'巧舌如簧':1,'威压恫吓':1,'故纸寻踪':1,'察言观色':1,
+			'妙手回春':1,'蛇行鳞潜':1,'鬼蜮伎俩':1,'机动驾驶':1,
+			'械理洞明':1,'博古通今':1,'万物生息':1,'数理思维':1
+		};
+		let char = {
+			b: {n:'',a:'',g:'',bg:'',crd:'',d:'',wv:'',g2:'',a2:''},
+			a: {s:5,b:5},
+			reactions: ['▲','●','■'],
+			s: {...initSkillLevels}
+		};
+		
+		// 渲染技能（支持二维数组分多行排列，含悬浮描述弹窗）
+		function renderSkills(){
+			let html = '';
+			for(const [category, value] of Object.entries(skillCategories)){
+				html += `<div class="skills-section"><h3>${category}</h3>`;
+				// 若第一元素是数组（二维），则逐行渲染
+				if(Array.isArray(value) && value.length > 0 && Array.isArray(value[0])){
+					for(const row of value){
+						html += '<div class="skills-grid">';
+						for(const skill of row){
+							html += buildSkillCard(skill, category);
+						}
+						html += '</div>';
+					}
+				} else {
+					// 一维数组，单行渲染
+					html += '<div class="skills-grid">';
+					for(const skill of value){
+						html += buildSkillCard(skill, category);
+					}
+					html += '</div>';
+				}
+				html += '</div>';
+			}
+			document.getElementById('skills-container').innerHTML = html;
+			bindSkillHover();
+		}
+		// 构建单个技能卡片（含弹窗）
+		function buildSkillCard(skill, category){
+			let buttons = '';
+			for(let k=1; k<=10; k++){
+				let btnClass = 'level-btn lv' + k;
+				if(k <= char.s[skill]) btnClass += ' active';
+				if(k === char.s[skill]) btnClass += ' current';
+				buttons += `<div class="${btnClass}" onclick="setSkillLevel('${skill}', ${k})">${k}</div>`;
+			}
+			const desc = skillDescriptions[skill] || '暂无描述';
+			return `
+				<div class="skill-item" data-skill="${skill}" data-skill-level="${char.s[skill]}">
+					<div class="skill-tooltip">
+						<div class="tt-name">${skill}</div>
+						<div class="tt-desc">${desc}</div>
+					</div>
+					<span class="skill-name">${skill} Lv.${char.s[skill]}</span>
+					<div class="level-buttons">${buttons}</div>
+				</div>`;
+		}
+
+		// 计算技能等级消耗的瞑目点数
+		function getSkillCost(level) {
+			if (level <= 3) return level;
+			if (level <= 6) return 3 + (level - 3) * 2;
+			if (level <= 9) return 3 + 6 + (level - 6) * 4;
+			return 3 + 6 + 12 + (level - 9) * 8;
+		}
+		// 计算属性值消耗的瞑目点数（与技能相同的阶梯收费：[1-3]1、[4-6]2、[7-9]4、[10]8）
+		function getAttrCost(val) {
+			if (val <= 3) return val;
+			if (val <= 6) return 3 + (val - 3) * 2;
+			if (val <= 9) return 3 + 6 + (val - 6) * 4;
+			return 3 + 6 + 12 + (val - 9) * 8;
+		}
+		// 绑定悬浮变暗逻辑（通过事件委托实现）
+		function bindSkillHover(){
+			const container = document.getElementById('skills-container');
+			container.addEventListener('mouseover', e => {
+				const item = e.target.closest('.skill-item');
+				if(item){
+					const siblings = item.parentElement.querySelectorAll('.skill-item');
+					siblings.forEach(s => { if(s !== item) s.classList.add('dimmed'); });
+				}
+			});
+			container.addEventListener('mouseout', e => {
+				const item = e.target.closest('.skill-item');
+				if(item && !item.contains(e.relatedTarget)){
+					const siblings = item.parentElement.querySelectorAll('.skill-item');
+					siblings.forEach(s => s.classList.remove('dimmed'));
+				}
+			});
+			container.addEventListener('mouseleave', () => {
+				container.querySelectorAll('.skill-item.dimmed').forEach(s => s.classList.remove('dimmed'));
+			});
+		}
+		
+		// 远景微亮星星（保留用于3D空间稀疏星）
+		let starfieldPoints = null;
+		let starfieldPoints2 = null;
+		function createStarfield() {
+			const geo = new THREE.BufferGeometry();
+			const count = 2500;
+			const pos = new Float32Array(count * 3);
+			const col = new Float32Array(count * 3);
+			for (let i = 0; i < count; i++) {
+				const r = 80 + 40 * Math.random();
+				const theta = 2 * Math.PI * Math.random();
+				const phi = Math.acos(2 * Math.random() - 1);
+				pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+				pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+				pos[i*3+2] = r * Math.cos(phi);
+				const b = 0.4 + 0.6 * Math.random();
+				col[i*3]   = b;
+				col[i*3+1] = b;
+				col[i*3+2] = 1.0;
+			}
+			geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+			geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+			const mat = new THREE.PointsMaterial({
+				size: 0.08,
+				sizeAttenuation: true,
+				vertexColors: true,
+				transparent: true,
+				opacity: 0.7,
+				depthWrite: false
+			});
+			starfieldPoints = new THREE.Points(geo, mat);
+			scene.add(starfieldPoints);
+
+			// 中景稍大稍亮星星（层次感）
+			const geo2 = new THREE.BufferGeometry();
+			const count2 = 1250;
+			const pos2 = new Float32Array(count2 * 3);
+			const col2 = new Float32Array(count2 * 3);
+			for (let i = 0; i < count2; i++) {
+				const r = 60 + 20 * Math.random();
+				const theta = 2 * Math.PI * Math.random();
+				const phi = Math.acos(2 * Math.random() - 1);
+				pos2[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+				pos2[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+				pos2[i*3+2] = r * Math.cos(phi);
+				const b = 0.7 + 0.3 * Math.random();
+				col2[i*3]   = b;
+				col2[i*3+1] = b;
+				col2[i*3+2] = 1.0;
+			}
+			geo2.setAttribute('position', new THREE.BufferAttribute(pos2, 3));
+			geo2.setAttribute('color', new THREE.BufferAttribute(col2, 3));
+			const mat2 = new THREE.PointsMaterial({
+				size: 0.18,
+				sizeAttenuation: true,
+				vertexColors: true,
+				transparent: true,
+				opacity: 0.85,
+				depthWrite: false
+			});
+			starfieldPoints2 = new THREE.Points(geo2, mat2);
+			scene.add(starfieldPoints2);
+		}
+
+		// 星空着色器代码（横向星云+闪烁动画）
+		const starVS = `
+		varying vec2 vUv;
+		void main(){
+			vUv = uv;
+			gl_Position = vec4(position.xy, 0.0, 1.0);
+		}`;
+		const starFS = `
+		precision mediump float;
+		varying vec2 vUv;
+		uniform float uTime;
+		uniform vec2 uRes;
+		float hash(vec2 p){
+			vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+			p3 += dot(p3, p3.yzx + 33.33);
+			return fract((p3.x + p3.y) * p3.z);
+		}
+		float noise(vec2 p){
+			vec2 i = floor(p);
+			vec2 f = fract(p);
+			vec2 u = f*f*(3.0-2.0*f);
+			float a = hash(i);
+			float b = hash(i+vec2(1.0,0.0));
+			float c = hash(i+vec2(0.0,1.0));
+			float d = hash(i+vec2(1.0,1.0));
+			return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
+		}
+		// 优化: 循环5次，平衡性能与质量
+		float fbm(vec2 p){
+			float v = 0.0;
+			float a = 0.5;
+			for(int i=0;i<5;i++){
+				v += a * noise(p);
+				p *= 2.02;
+				a *= 0.5;
+			}
+			return v;
+		}
+		float warpedFbm(vec2 p){
+			float t = uTime * 0.012;
+			vec2 q;
+			q.x = fbm(p + vec2(0.0, t));
+			q.y = fbm(p + vec2(5.2 + t*1.3, 1.3));
+			vec2 r;
+			r.x = fbm(p + 1.8 * q + vec2(1.7, 9.2));
+			r.y = fbm(p + 1.8 * q + vec2(8.3, 2.8));
+			return fbm(p + 1.8 * r);
+		}
+		float nebulaMask(vec2 uv, float aspect){
+			float t = uTime * 0.008;
+			// 应用 aspect ratio 校正坐标
+			vec2 nuv = vec2(uv.x * (aspect > 1.0 ? 1.0/aspect : 1.0), uv.y);
+			// 中心线蜿蜒
+			float cx = nuv.x;
+			float cy = 0.42 + 0.07*sin(cx*1.1 + t*0.5) + 0.04*sin(cx*2.3 + t*0.7) + (fbm(vec2(cx*1.6+20.0, t))-0.5)*0.07;
+			// 宽度变化 (稍微加宽主体)
+			float w = 0.08 + 0.15 * fbm(vec2(cx*3.0+5.0, cy*8.0)) + 0.06 * sin(cx*3.5);
+			w = max(0.04, w);
+			// 距离中心线
+			float d = abs(uv.y - cy) / w;
+			// 主带: 高斯衰减
+			float mask = exp(-d*d * 2.2);
+			return mask;
+		}
+		float nebulaShape(vec2 uv, float aspect){
+			float t = uTime * 0.006;
+			// 应用 aspect ratio 校正坐标
+			vec2 nuv = vec2(uv.x * (aspect > 1.0 ? 1.0/aspect : 1.0), uv.y);
+			// 使用扭曲域噪声产生有机团簇
+			float wx = nuv.x * 2.5 + 40.0;
+			float wy = nuv.y * 4.0;
+			float n1 = warpedFbm(vec2(wx + t, wy));
+			float n2 = warpedFbm(vec2(wx*1.8 + 70.0, wy*1.5 - t*0.7));
+			float n3 = warpedFbm(vec2(wx*3.0 + 110.0, wy*2.2 + t*0.4));
+			// 组合多层噪声: 大尺度团簇 + 中尺度结构 + 小尺度细节
+			float large = smoothstep(0.25, 0.75, n1);
+			float medium = smoothstep(0.3, 0.7, n2);
+			float detail = n3;
+			return (0.35 + 0.65*large) * (0.4 + 0.6*medium) * (0.3 + 0.7*detail);
+		}
+		void main(){
+			vec2 uv = vUv;
+			float aspect = uRes.x / uRes.y;
+			vec2 p = vec2(uv.x * aspect, uv.y);
+			// 预计算时间因子
+			float tDrift = uTime * 0.008;
+			float tAnim = uTime;
+			// 星云遮罩与形状 (带 aspect ratio 校正)
+			float mask = nebulaMask(uv, aspect);
+			float shape = nebulaShape(uv, aspect);
+			float nebula = mask * shape;
+			// 云纹理
+			float cloud = warpedFbm(vec2(uv.x*2.0 + tDrift, uv.y*3.0));
+			float cloud2 = warpedFbm(vec2(uv.x*4.0 + tDrift*1.3, uv.y*5.0));
+			float cloud3 = warpedFbm(vec2(uv.x*6.0 + tDrift*0.7, uv.y*7.0));
+			float cloudDetail = smoothstep(0.2, 0.75, cloud*0.65 + cloud2*0.35) * mask;
+			// 热点 (替换 pow 为乘法)
+			float c2 = max(cloud2, 0.0);
+			float c3 = max(cloud3, 0.0);
+			float c2sq = c2 * c2;
+			float c2qt = c2sq * c2sq;
+			float hotSpots = c2qt * c2 * mask * 4.0; // c2^5
+			float c3sq = c3 * c3;
+			float c3q = c3sq * c3sq;
+			float hotSpots3 = c3q * c3 * c3 * mask * 6.0; // c3^8
+			hotSpots += hotSpots3;
+			hotSpots *= 0.85 + 0.15*sin(tAnim*0.6 + uv.x*5.0);
+			// 背景
+			vec3 col = vec3(0.0);
+			float hgrad = 1.0 - uv.x * 0.15;
+			vec3 bg = vec3(0.002,0.0025,0.006);
+			vec3 bg2 = vec3(0.005,0.006,0.014);
+			float bgNoise = smoothstep(0.0,1.0,fbm(vec2(uv.x*1.5,uv.y*1.5)));
+			col += mix(bg,bg2,bgNoise)*0.4*hgrad;
+			// 星云颜色 (混合)
+			vec3 coolCol = vec3(0.35,0.52,0.92);
+			vec3 midCol = vec3(0.65,0.45,0.78);
+			vec3 warmCol = vec3(0.95,0.82,0.65);
+			vec3 hotCol = vec3(1.0,0.95,0.85);
+			float t1 = smoothstep(0.3, 0.6, cloud);
+			float t2 = smoothstep(0.4, 0.7, cloud2);
+			vec3 c1 = mix(coolCol, midCol, t1);
+			vec3 c2m = mix(c1, warmCol, t2);
+			col += c2m * cloudDetail * 0.8;
+			col += hotCol * hotSpots * 0.9;
+			col += vec3(0.4,0.22,0.55) * nebula * 0.4;
+			float glow = mask * shape * 0.3;
+			col += vec3(0.5,0.35,0.7) * glow;
+			// 暗部提亮, 整体调优
+			col = pow(col, vec3(0.92)) * 0.78;
+			gl_FragColor = vec4(col, 1.0);
+		}`;
+
+		// 全屏星空着色器
+		let starUniforms, starMesh;
+		function createStarQuad(){
+			const geo = new THREE.PlaneGeometry(2, 2);
+			starUniforms = {
+				uTime: { value: 0 },
+				uRes: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+			};
+			const mat = new THREE.ShaderMaterial({
+				vertexShader: starVS,
+				fragmentShader: starFS,
+				uniforms: starUniforms,
+				depthTest: false,
+				depthWrite: false
+			});
+			starMesh = new THREE.Mesh(geo, mat);
+			starMesh.frustumCulled = false;
+			starMesh.renderOrder = -100;
+			scene.add(starMesh);
+		}
+
+		// Three.js初始化
+		let scene, camera, renderer, controls, moon;
+		function initThree(){
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(0x020008);
+			camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+			camera.position.z = 5;
+			renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.2});
+			renderer.setSize(window.innerWidth,window.innerHeight);
+			renderer.setPixelRatio(devicePixelRatio);
+			document.getElementById('three-canvas').appendChild(renderer.domElement);
+			
+			controls = new THREE.OrbitControls(camera,renderer.domElement);
+			controls.enableDamping = true;
+			controls.dampingFactor = 0.05;
+			
+			scene.add(new THREE.AmbientLight(0x442222));
+			let light = new THREE.DirectionalLight(0xffaa88,0.95);
+			light.position.set(10,5,7);
+			scene.add(light);
+			
+			// 全屏星空着色器背景
+			createStarQuad();
+			
+			// 远景星点
+			createStarfield();
+			
+			// 月球纹理加载
+			const moonLoader = new THREE.TextureLoader();
+			const moonMaterial = new THREE.MeshPhongMaterial({
+				color:0xff6644,specular:0x221111,shininess:2,emissive:0x2a0000,emissiveIntensity:0.12
+			});
+			moonLoader.load(
+				'moon.webp',
+				(texture) => {
+					texture.colorSpace = THREE.SRGBColorSpace;
+					moonMaterial.map = texture;
+					moonMaterial.needsUpdate = true;
+					console.log('月球纹理加载成功');
+				},
+				undefined,
+				(err) => {
+					console.error('月球纹理加载失败:', err);
+				}
+			);
+			moon = new THREE.Mesh(new THREE.SphereGeometry(2,64,32), moonMaterial);
+			moon.rotation.y=Math.PI/6;
+			scene.add(moon);
+			
+			let canvas = document.createElement('canvas');
+			canvas.width = 64; canvas.height = 64;
+			let ctx = canvas.getContext('2d');
+			let g = ctx.createRadialGradient(32,32,0,32,32,32);
+			g.addColorStop(0,'rgba(255,100,100,1)');
+			g.addColorStop(0.2,'rgba(255,50,50,0.8)');
+			g.addColorStop(1,'rgba(255,0,0,0)');
+			ctx.fillStyle = g;
+			ctx.fillRect(0,0,64,64);
+			
+			let sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+				map: new THREE.CanvasTexture(canvas),
+				color: 0xff4444,
+				transparent: true,
+				blending: THREE.AdditiveBlending,
+				opacity: 0.28
+			}));
+			sprite.scale.set(5,5,1);
+			moon.add(sprite);
+		}
+		
+		function animate(){
+			requestAnimationFrame(animate);
+			if(starUniforms){
+				starUniforms.uTime.value += 0.016;
+			}
+			moon.rotation.y+=.001;
+			// 远景星空缓慢自转
+			if (starfieldPoints) {
+				starfieldPoints.rotation.y += 0.0008;
+				starfieldPoints.rotation.x += 0.0002;
+			}
+			if (starfieldPoints2) {
+				starfieldPoints2.rotation.y += 0.0012;
+				starfieldPoints2.rotation.x += 0.0003;
+			}
+			controls.update();
+			renderer.render(scene,camera);
+		}
+		
+		// Three.js resize 处理（一次性绑定）
+		window.addEventListener('resize', () => {
+			const w = window.innerWidth, h = window.innerHeight;
+			renderer.setSize(w, h);
+			camera.aspect = w / h;
+			camera.updateProjectionMatrix();
+			if(starUniforms){
+				starUniforms.uRes.value.set(w, h);
+			}
+		});
+		
+		// 反应框切换函数
+		function cycle(btn) {
+			const icons = ['▲', '●', '■'];
+			const currentIcon = btn.textContent;
+			const currentIndex = icons.indexOf(currentIcon);
+			const nextIndex = (currentIndex + 1) % icons.length;
+			btn.textContent = icons[nextIndex];
+			
+			// 
+			const index = Array.from(btn.parentElement.children).indexOf(btn);
+			char.reactions[index] = icons[nextIndex];
+		}
+		
+		// 根据年龄计算魂魄补正
+		function getAgeModifier(age) {
+			if (!age || age <= 0) return { s: 0, b: 0 };
+			// 10岁以下：每小3岁魂魄各-1（7岁-2，4岁-3，1岁-4）
+			if (age < 10) {
+				const steps = Math.floor((10 - age) / 3);
+				const mod = -1 - steps;
+				return { s: mod, b: mod };
+			}
+			if (age < 20) return { s: -1, b: -1 };
+			if (age < 40) return { s: 0, b: 0 };
+			// 40~49岁：魂魄各-1
+			if (age < 50) return { s: -1, b: -1 };
+			// 50岁以上：每加10岁魂魄各-1
+			const decadesOver50 = Math.floor((age - 50) / 10);
+			const mod = -1 - decadesOver50;
+			return { s: mod, b: mod };
+		}
+
+		// 根据年龄重置魂魄属性为初始值
+		function updateAttributesByAge(newAge, oldAge) {
+			const mod = getAgeModifier(newAge);
+			const newBase = { s: Math.max(1, Math.min(10, 5 + mod.s)), b: Math.max(1, Math.min(10, 5 + mod.b)) };
+			const sInput = document.getElementById('s');
+			const bInput = document.getElementById('b');
+			sInput.value = newBase.s;
+			bInput.value = newBase.b;
+			sInput.dataset.oldValue = newBase.s;
+			bInput.dataset.oldValue = newBase.b;
+			char.a.s = newBase.s;
+			char.a.b = newBase.b;
+			updateSoulPoints();
+		}
+
+		// 信用等级定义
+		const creditLevels = ['小康', '富裕', '名流'];
+		const creditCosts = { '小康': 0, '富裕': 1, '名流': 2 };
+
+		// 
+		function adjCredit(delta) {
+			const input = document.getElementById('a2');
+			// 防止点击箭头时 input 获得焦点导致蓝框
+			input.blur();
+			let current = creditLevels.indexOf(input.value);
+			if (current === -1 && delta < 0) return; // 空状态点-无反应
+			if (current === -1) current = -1; // 保持空状态
+			const next = Math.max(0, Math.min(creditLevels.length - 1, current + delta));
+			if (next === current) return;
+			// 检查瞑目消耗
+			const oldCost = creditCosts[creditLevels[current]];
+			const newCost = creditCosts[creditLevels[next]];
+			const netCost = newCost - oldCost;
+			if (netCost > 0 && getRemainingSoul() < netCost) {
+				alert('瞑目点数不足！');
+				return;
+			}
+			input.value = creditLevels[next];
+			updateSoulPoints();
+			input.dispatchEvent(new Event('input'));
+		}
+
+		// 
+		function adjAge(delta) {
+			const input = document.getElementById('a');
+			// 防止点击箭头时 input 获得焦点导致蓝框
+			input.blur();
+			let oldValue = parseInt(input.value) || 0;
+			let newValue = oldValue + delta;
+			if (newValue < 0) newValue = 0;
+			input.value = newValue;
+			char.b.a = newValue.toString();
+			if (newValue > 0) {
+				updateAttributesByAge(newValue, oldValue);
+			}
+			input.dispatchEvent(new Event('input'));
+		}
+		
+		// 获取当前年龄的魂魄基础值（用于瞑目计算）
+		function getAgeBaseAttrs(age) {
+			const mod = getAgeModifier(age || 0);
+			return { s: 5 + mod.s, b: 5 + mod.b };
+		}
+
+		// 
+		function getRemainingSoul() {
+			const base = 8;
+			const age = parseInt(document.getElementById('a')?.value) || 0;
+			const baseAttrs = getAgeBaseAttrs(age);
+			// 魂魄消耗（阶梯收费）：计算当前值与基础值的累计消耗差，减少时返还
+			const curS = parseInt(document.getElementById('s').value) || 0;
+			const curB = parseInt(document.getElementById('b').value) || 0;
+			const sCost = getAttrCost(curS) - getAttrCost(baseAttrs.s);
+			const bCost = getAttrCost(curB) - getAttrCost(baseAttrs.b);
+			const soulCost = sCost + bCost;
+			// 信用消耗
+			const creditLevel = document.getElementById('a2')?.value || '小康';
+			const creditCost = creditCosts[creditLevel] || 0;
+			// 技能消耗：等级高于初始消耗，低于初始返还
+			let skillCost = 0;
+			for (const k in char.s) {
+				const init = initSkillLevels[k] || 0;
+				const cur = char.s[k];
+				skillCost += getSkillCost(cur) - getSkillCost(init);
+			}
+			return base - soulCost - creditCost - skillCost;
+		}
+
+		function updateSoulPoints() {
+			const remaining = Math.max(0, getRemainingSoul());
+			document.querySelector('.s').textContent = '剩余瞑目点数：' + remaining;
+		}
+
+		// 
+		function adjSoul(delta) {
+			const input = document.getElementById('s');
+			// 防止点击箭头时 input 获得焦点导致蓝框
+			input.blur();
+			let currentValue = parseInt(input.value) || 0;
+			const newValue = currentValue + delta;
+			if (newValue < 1 || newValue > 10) return;
+			if (delta > 0) {
+				const cost = getAttrCost(newValue) - getAttrCost(currentValue);
+				if (getRemainingSoul() < cost) {
+					alert('瞑目点数不足！');
+					return;
+				}
+			}
+			currentValue = newValue;
+			input.value = currentValue;
+			input.dataset.oldValue = currentValue;
+			char.a.s = currentValue;
+			updateSoulPoints();
+			input.dispatchEvent(new Event('input'));
+		}
+
+		// 
+		function adjSpirit(delta) {
+			const input = document.getElementById('b');
+			// 防止点击箭头时 input 获得焦点导致蓝框
+			input.blur();
+			let currentValue = parseInt(input.value) || 0;
+			const newValue = currentValue + delta;
+			if (newValue < 1 || newValue > 10) return;
+			if (delta > 0) {
+				const cost = getAttrCost(newValue) - getAttrCost(currentValue);
+				if (getRemainingSoul() < cost) {
+					alert('瞑目点数不足！');
+					return;
+				}
+			}
+			currentValue = newValue;
+			input.value = currentValue;
+			input.dataset.oldValue = currentValue;
+			char.a.b = currentValue;
+			updateSoulPoints();
+			input.dispatchEvent(new Event('input'));
+		}
+
+		// 
+		function setSkillLevel(skill, level) {
+			const oldLevel = char.s[skill];
+			const initLevel = initSkillLevels[skill] || 0;
+			// 点击当前等级 -> 清零到0（返还消耗）
+			if (level === oldLevel && level > 0) {
+				char.s[skill] = 0;
+				renderSkills();
+				updateSoulPoints();
+				return;
+			}
+			if (level > oldLevel) {
+				const oldCost = Math.max(0, getSkillCost(Math.max(oldLevel, initLevel)) - getSkillCost(initLevel));
+				const newCost = Math.max(0, getSkillCost(Math.max(level, initLevel)) - getSkillCost(initLevel));
+				const actualRemaining = getRemainingSoul();
+				const netCost = newCost - oldCost;
+				if (netCost > actualRemaining) {
+					alert('瞑目点数不足！');
+					return;
+				}
+			}
+			char.s[skill] = level;
+			renderSkills();
+			updateSoulPoints();
+		}
+
+		// 导出角色卡
+		function exportChar(){
+			const b = char.b;
+			let txt = '';
+			// ——基础——
+			txt += '——基础——\n';
+			const remainingSoul = Math.max(0, getRemainingSoul());
+			// 反应图标映射
+			const reactionIcons = {'▲':'▲','●':'●','■':'■'};
+			const reactionStr = char.reactions.map(r => reactionIcons[r] || '').join('');
+			if (b.a2) {
+				// 单行：姓名（性别）；年龄
+				txt += `姓名：${b.n||''}（${b.g||''}）；年龄：${b.a||''}\n`;
+				txt += `种族：${b.g2||''}；信用：${b.a2||''}\n`;
+			} else {
+				txt += `姓名：${b.n||''}（${b.g||''}）；年龄：${b.a||''}\n`;
+				txt += `种族：${b.g2||''}；信用：${b.a2||''}\n`;
+			}
+			// 瞑目+反应同行
+			txt += `瞑目：${remainingSoul}；反应：${reactionStr}\n`;
+			txt += `信条：${b.crd||''}；欲望：${b.d||''}\n`;
+			txt += `经历：${b.bg||''}\n`;
+			txt += `世界观：${b.wv||''}\n`;
+			// ——能力——
+			txt += '——能力——\n';
+			txt += `魂：${char.a.s||0}；魄：${char.a.b||0}\n`;
+			const abilityParts = [`魂${char.a.s||0}`, `魄${char.a.b||0}`, `力竭0`];
+			for (const [cat, val] of Object.entries(skillCategories)) {
+				const flat = Array.isArray(val[0]) ? val.flat() : val;
+				const skills = flat.map(s => {
+					const lv = char.s[s] || 0;
+					return `${s}${lv}`;
+				});
+				// 所有技能等级都记录（含0）
+				txt += `${cat}：${skills.join('、')}\n`;
+				abilityParts.push(...skills);
+			}
+			// ——导入——
+			txt += '——导入——\n';
+			txt += `.st${abilityParts.join('')}\n`;
+			const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+			const url = URL.createObjectURL(blob);
+			const name = (b.n || '角色卡') + '.txt';
+			const a_tag = document.createElement('a');
+			a_tag.href = url;
+			a_tag.download = name;
+			document.body.appendChild(a_tag);
+			a_tag.click();
+			document.body.removeChild(a_tag);
+			URL.revokeObjectURL(url);
+		}
+
+		// 输入框事件
+        ['n','a','bg','crd','d','g','wv','g2','a2'].forEach(id=>{
+            let el=document.getElementById(id);
+            el.addEventListener('input',function(){char.b[id]=this.value;});
+        });
+        document.getElementById('s').addEventListener('input',function(e){
+            this.value = this.value.replace(/[^0-9]/g, '');
+            char.a.s = parseInt(this.value) || 0;
+        });
+        document.getElementById('b').addEventListener('input',function(e){
+            this.value = this.value.replace(/[^0-9]/g, '');
+            char.a.b = parseInt(this.value) || 0;
+        });
+
+        // 
+        function updateUI() {
+            document.getElementById('n').value = char.b.n;
+            document.getElementById('a').value = char.b.a;
+            document.getElementById('g').value = char.b.g;
+            document.getElementById('g2').value = char.b.g2;
+            document.getElementById('a2').value = char.b.a2;
+            document.getElementById('bg').value = char.b.bg;
+            document.getElementById('crd').value = char.b.crd;
+            document.getElementById('d').value = char.b.d;
+            document.getElementById('wv').value = char.b.wv;
+            document.getElementById('s').value = char.a.s;
+            document.getElementById('b').value = char.a.b;
+            // 
+            document.querySelectorAll('.reaction-btn').forEach((btn, index) => {
+                if (char.reactions && char.reactions[index]) {
+                    btn.textContent = char.reactions[index];
+                }
+            });
+            renderSkills();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化输入框浮动标签逻辑
+            const containers = document.querySelectorAll('.input-container');
+            containers.forEach(container => {
+                const input = container.querySelector('.md3-input');
+                const label = container.querySelector('.input-label');
+                if (!input || !label) return;
+
+                // 计算浮动 ty
+                const computeTy = () => {
+                    const inputTop = input.getBoundingClientRect().top;
+                    // 清除 float，测量 label 默认位置中心
+                    label.classList.remove('float');
+                    label.style.transition = 'none';
+                    const r = label.getBoundingClientRect();
+                    const ty = inputTop - (r.top + r.height / 2);
+                    // X 补偿：scale(0.85) + transform-origin:0 50% 使视觉左侧偏移 labelWidth*(1-0.85)/2
+                    // 补偿方向：左移为负
+                    const tx = -r.width * (1 - 0.85) / 2;
+                    return { ty: ty, tx: tx };
+                };
+
+                // 浮动标签
+                const floatLabel = () => {
+                    const { ty, tx } = computeTy();
+                    label.style.transition = '';
+                    requestAnimationFrame(() => {
+                        label.style.setProperty('--ty', ty + 'px');
+                        label.style.setProperty('--tx', tx + 'px');
+                        label.classList.add('float');
+                    });
+                };
+                // 恢复默认
+                const resetLabel = () => {
+                    label.classList.remove('float');
+                };
+                const updateFloat = () => {
+                    if (input.value || document.activeElement === input) {
+                        // 如果已经在浮动状态且有文本，不再重新触发动画
+                        if (label.classList.contains('float') && input.value) return;
+                        floatLabel();
+                    } else {
+                        resetLabel();
+                    }
+                };
+                input.addEventListener('focus', updateFloat);
+                input.addEventListener('blur', updateFloat);
+                input.addEventListener('input', updateFloat);
+
+                // 尺寸变化重算
+                const ro = new ResizeObserver(() => {
+                    if (label.classList.contains('float')) floatLabel();
+                });
+                ro.observe(input);
+                window.addEventListener('resize', () => {
+                    if (label.classList.contains('float')) floatLabel();
+                });
+
+                updateFloat();
+            });
+
+            renderSkills();
+
+            // 年龄输入变化时更新魂魄初始值
+            const ageInput = document.getElementById('a');
+            if (ageInput) {
+                ageInput.addEventListener('focus', () => {
+                    ageInput.dataset.oldAge = ageInput.value;
+                });
+                ageInput.addEventListener('change', () => {
+                    const age = parseInt(ageInput.value) || 0;
+                    const oldAge = parseInt(ageInput.dataset.oldAge) || 0;
+                    if (age > 0) {
+                        updateAttributesByAge(age, oldAge);
+                    }
+                    ageInput.dataset.oldAge = ageInput.value;
+                });
+            }
+
+            // 魂魄输入变化时更新瞑目点数
+            ['s', 'b'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.addEventListener('change', () => {
+                        let v = parseInt(input.value) || 1;
+                        if (v < 1) v = 1;
+                        if (v > 10) v = 10;
+                        // 增加属性需要消耗瞑目点
+                        const oldV = input.dataset.oldValue ? parseInt(input.dataset.oldValue) : v;
+                        if (v > oldV) {
+                            const cost = getAttrCost(v) - getAttrCost(oldV);
+                            if (getRemainingSoul() < cost) {
+                                alert('瞑目点数不足！');
+                                input.value = oldV;
+                                return;
+                            }
+                        }
+                        input.value = v;
+                        input.dataset.oldValue = v;
+                        updateSoulPoints();
+                    });
+                    input.addEventListener('blur', () => {
+                        input.dispatchEvent(new Event('change'));
+                    });
+                    input.dataset.oldValue = input.value;
+                }
+            });
+            updateSoulPoints();
+
+            // 响应式布局：竖屏时将 nation-row 移出 settings-container
+            const nationRow = document.querySelector('.nation-row');
+            const settingsMain = document.querySelector('.settings-main');
+            const creditInput = document.getElementById('crd');
+            
+            function applyResponsiveLayout() {
+                if (!nationRow || !settingsMain || !creditInput) return;
+                const isPortrait = window.innerWidth <= 768;
+                const card = document.querySelector('.card');
+                
+                if (isPortrait) {
+                    // 竖屏：移到 settings-container 外部
+                    if (nationRow.parentNode === settingsMain) {
+                        card.insertBefore(nationRow, creditInput.parentNode);
+                    }
+                } else {
+                    // 横屏：移回 settings-main 内部
+                    if (nationRow.parentNode !== settingsMain) {
+                        settingsMain.appendChild(nationRow);
+                    }
+                }
+                // 左侧容器匹配右侧高度
+                const leftCard = document.querySelector('.m .card:first-child');
+                const rightCard = document.querySelector('.m .card:last-child');
+                if(leftCard && rightCard){
+                    leftCard.style.height = rightCard.offsetHeight + 'px';
+                }
+            }
+            applyResponsiveLayout();
+            window.addEventListener('resize', applyResponsiveLayout);
+            // 冻结视口：下滑触发黑色半透明模糊遮罩
+            const headerEl = document.querySelector('header');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 10) {
+                    headerEl.classList.add('frozen');
+                } else {
+                    headerEl.classList.remove('frozen');
+                }
+            });
+
+            initThree();
+            animate();
+        });
+</script>
+</body>
+</html>
